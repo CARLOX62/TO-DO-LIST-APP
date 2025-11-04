@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Tasks{% endblock %}
+
+{% block content %}
+<!-- Today's Focus -->
+{% if todays_tasks %}
+<div class="alert alert-warning">
+    <h5><i class="fas fa-exclamation-triangle"></i> Today's Focus</h5>
+    <ul class="mb-0">
+        {% for task in todays_tasks %}
+        <li>{{ task.title }} (Due: {{ task.due_date.strftime('%Y-%m-%d') if task.due_date else 'No due date' }})</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ tasks|length }}</h5>
+                <p class="card-text">Total Tasks</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ done_this_week }}</h5>
+                <p class="card-text">Done This Week</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ todays_tasks|length }}</h5>
+                <p class="card-text">Due Today</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Task Form -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-plus"></i> Add New Task</h5>
+        <form action="{{ url_for('tasks.add_task') }}" method="post">
+            {{ form.hidden_tag() }}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    {{ form.title.label(class="form-label") }}
+                    {{ form.title(class="form-control", placeholder="Enter task title") }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.due_date.label(class="form-label") }}
+                    {{ form.due_date(class="form-control") }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.priority.label(class="form-label") }}
+                    {{ form.priority(class="form-select") }}
+                </div>
+                <div class="col-md-2">
+                    {{ form.category.label(class="form-label") }}
+                    {{ form.category(class="form-select") }}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3"><i class="fas fa-plus"></i> Add Task</button>
+        </form>
+    </div>
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-search"></i> Search & Filter</h5>
+        <form method="GET" action="{{ url_for('tasks.view_tasks') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" name="search" id="search" class="form-control" placeholder="Search tasks..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+                    <option value="Working" {% if status_filter == 'Working' %}selected{% endif %}>Working</option>
+                    <option value="Done" {% if status_filter == 'Done' %}selected{% endif %}>Done</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="priority_filter" class="form-label">Priority</label>
+                <select name="priority" id="priority_filter" class="form-select">
+                    <option value="">All Priority</option>
+                    <option value="Low" {% if priority_filter == 'Low' %}selected{% endif %}>Low</option>
+                    <option value="Medium" {% if priority_filter == 'Medium' %}selected{% endif %}>Medium</option>
+                    <option value="High" {% if priority_filter == 'High' %}selected{% endif %}>High</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="category_filter" class="form-label">Category</label>
+                <select name="category" id="category_filter" class="form-select">
+                    <option value="">All Categories</option>
+                    <option value="Personal" {% if category_filter == 'Personal' %}selected{% endif %}>Personal</option>
+                    <option value="Work" {% if category_filter == 'Work' %}selected{% endif %}>Work</option>
+                    <option value="Study" {% if category_filter == 'Study' %}selected{% endif %}>Study</option>
+                    <option value="Other" {% if category_filter == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div>
+                    <button type="submit" class="btn btn-secondary me-2"><i class="fas fa-search"></i> Filter</button>
+                    <a href="{{ url_for('tasks.view_tasks') }}" class="btn btn-outline-secondary"><i class="fas fa-times"></i> Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tasks Table -->
+{% if tasks %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0"><i class="fas fa-list"></i> Your Tasks ({{ tasks|length }})</h5>
+            <form method="post" action="{{ url_for('tasks.clear_tasks') }}" onsubmit="return confirm('Are you sure you want to clear all tasks?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> Clear All</button>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Priority</th>
+                        <th>Category</th>
+                        <th>Due Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ task.title }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'secondary' if task.status == 'Pending' else 'primary' if task.status == 'Working' else 'success' }}">
+                                {{ task.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'info' if task.priority == 'Low' else 'warning' if task.priority == 'Medium' else 'danger' }}">
+                                {{ task.priority }}
+                            </span>
+                        </td>
+                        <td>{{ task.category }}</td>
+                        <td>{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '-' }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <form action="{{ url_for('tasks.toggle_status', task_id=task.id) }}" method="post" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Toggle Status">
+                                        <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('tasks.edit_task', task_id=task.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ url_for('tasks.delete_task', task_id=task.id) }}" method="post" class="d-inline" onsubmit="return confirm('Delete this task?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center mt-5">
+    <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+    <h4>No tasks yet</h4>
+    <p class="text-muted">Add your first task above to get started!</p>
+</div>
+{% endif %}
+
+{% endblock %}
